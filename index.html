@@ -440,7 +440,7 @@
 
         // 2. Fetch directly using corsproxy.io wrapper
         const targetUrl = `https://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode=${stopCode}`;
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
         try {
           const response = await fetch(proxyUrl, {
