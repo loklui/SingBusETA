@@ -1,663 +1,822 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Singapore Bus Arrival Dashboard</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Singapore Bus Arrival & Live Clock</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter & JetBrains Mono for clean dashboard & LED digital feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-      :root {
-        --bg-color: #0b0f19;
-        --card-bg: #161f30;
-        --accent-color: #3b82f6;
-        --text-main: #f3f4f6;
-        --text-sub: #9ca3af;
-        --border-color: #243049;
-        --green-seat: #10b981;
-        --yellow-stand: #f59e0b;
-        --red-limited: #ef4444;
-      }
-
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif;
-      }
-
       body {
-        background-color: var(--bg-color);
-        color: var(--text-main);
-        padding: 20px;
-        min-height: 100vh;
+        font-family: "Inter", sans-serif;
+        touch-action: manipulation;
       }
-
-      /* Top Progress Bar */
-      #progress-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: var(--border-color);
-        z-index: 1000;
+      .font-mono-num {
+        font-family: "JetBrains Mono", monospace;
       }
-      #progress-bar {
-        height: 100%;
-        width: 100%;
-        background: var(--accent-color);
-        transition: width 1s linear;
+      .glow-amber {
+        text-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
       }
-
-      /* Header & Clock */
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 10px;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid var(--border-color);
+      .glow-green {
+        text-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
       }
-
-      .time-display {
-        font-size: 3.5rem;
-        font-weight: 800;
-        letter-spacing: -1px;
-        color: #ffffff;
-        line-height: 1;
-      }
-
-      .date-display {
-        font-size: 1.1rem;
-        color: var(--text-sub);
-        margin-top: 5px;
-      }
-
-      .controls-top {
-        display: flex;
-        gap: 10px;
-      }
-
-      button {
-        background: var(--accent-color);
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: opacity 0.2s;
-      }
-
-      button:active {
-        opacity: 0.8;
-      }
-
-      /* Config Panel */
-      .config-panel {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 20px;
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-      }
-
-      .input-group {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        flex: 1;
-        min-width: 200px;
-      }
-
-      .input-group label {
-        font-size: 0.85rem;
-        color: var(--text-sub);
-        text-transform: uppercase;
-        font-weight: 700;
-      }
-
-      .input-group input {
-        background: var(--bg-color);
-        border: 1px solid var(--border-color);
-        color: white;
-        padding: 10px;
-        border-radius: 6px;
-        font-size: 1rem;
-      }
-
-      /* Shortcuts Bar */
-      .shortcuts-bar {
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-      }
-
-      .shortcut-btn {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        color: var(--text-main);
-        white-space: nowrap;
-        border-radius: 20px;
-        padding: 8px 16px;
-        font-size: 0.95rem;
-      }
-
-      .shortcut-btn.active {
-        background: var(--accent-color);
-        border-color: var(--accent-color);
-        color: white;
-      }
-
-      /* Bus Cards Grid */
-      .bus-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 15px;
-      }
-
-      .bus-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .bus-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .bus-number {
-        font-size: 2.2rem;
-        font-weight: 900;
-        color: #ffffff;
-        background: #1e293b;
-        padding: 2px 14px;
-        border-radius: 8px;
-        border: 1px solid #334155;
-      }
-
-      .arrivals-row {
-        display: flex;
-        gap: 10px;
-        justify-content: space-between;
-      }
-
-      .arrival-slot {
-        flex: 1;
-        background: var(--bg-color);
-        padding: 10px;
-        border-radius: 8px;
-        text-align: center;
-        border: 1px solid var(--border-color);
-      }
-
-      .arrival-slot.next-bus {
-        border-color: var(--accent-color);
-      }
-
-      .eta-time {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #ffffff;
-      }
-
-      .eta-time.arr {
-        color: var(--green-seat);
-        font-weight: 900;
-      }
-
-      .meta-tags {
-        display: flex;
-        justify-content: center;
-        gap: 4px;
-        margin-top: 6px;
-      }
-
-      .badge {
-        font-size: 0.7rem;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-
-      .badge-sea {
-        background: var(--green-seat);
-        color: #000;
-      }
-      .badge-sda {
-        background: var(--yellow-stand);
-        color: #000;
-      }
-      .badge-lsd {
-        background: var(--red-limited);
-        color: #fff;
-      }
-      .badge-type {
-        background: #334155;
-        color: #fff;
-      }
-
-      .error-msg {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid var(--red-limited);
-        color: var(--red-limited);
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
         display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.6);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(51, 65, 85, 0.8);
+        border-radius: 9999px;
       }
     </style>
   </head>
-  <body>
-    <div id="progress-container"><div id="progress-bar"></div></div>
+  <body
+    class="h-full flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950"
+  >
+    <!-- TOP HEADER & OVERSIZED LIVE CLOCK (SGT) -->
+    <header
+      class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5"
+    >
+      <div
+        class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3"
+      >
+        <!-- Brand & Status -->
+        <div class="flex items-center justify-between w-full sm:w-auto">
+          <div class="flex items-center gap-3">
+            <div
+              class="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400"
+            >
+              <i data-lucide="bus" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h1
+                class="font-extrabold text-lg tracking-tight text-slate-100 flex items-center gap-2"
+              >
+                SG Bus Dashboard
+                <span
+                  id="demo-badge"
+                  class="hidden text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+                >
+                  Demo Mode
+                </span>
+              </h1>
+              <p
+                class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5"
+              >
+                <span
+                  class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
+                  id="status-dot"
+                ></span>
+                <span id="status-text">Connected</span>
+              </p>
+            </div>
+          </div>
 
-    <div class="header">
-      <div>
-        <div class="time-display" id="clock">00:00:00</div>
-        <div class="date-display" id="date">Loading date...</div>
+          <!-- Quick Config Drawer Toggle -->
+          <button
+            id="toggle-config-btn"
+            class="p-2.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-xl border border-slate-800 transition flex items-center gap-1.5 text-xs font-medium"
+          >
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Settings</span>
+          </button>
+        </div>
+
+        <!-- Live Clock Display (SGT) -->
+        <div
+          class="flex items-center gap-4 bg-slate-950/90 border border-slate-800 px-5 py-2 rounded-2xl shadow-inner w-full sm:w-auto justify-center sm:justify-end"
+        >
+          <div class="text-center sm:text-right">
+            <div
+              id="clock-time"
+              class="font-mono-num text-3xl sm:text-4xl font-extrabold tracking-wider text-amber-400 glow-amber"
+            >
+              00:00:00
+            </div>
+            <div
+              id="clock-date"
+              class="text-xs font-medium text-slate-400 mt-0.5"
+            >
+              Loading Date...
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="controls-top">
-        <button onclick="fetchBusData()">Fetch Now</button>
+    </header>
+
+    <!-- DESTINATION SHORTCUTS PILL BAR -->
+    <div
+      class="bg-slate-900/60 border-b border-slate-800/80 px-4 sm:px-6 py-2.5 backdrop-blur-sm z-20"
+    >
+      <div
+        class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-1"
+        id="shortcuts-container"
+      >
+        <!-- Shortcut buttons generated dynamically from DESTINATION_SHORTCUTS array -->
       </div>
     </div>
 
-    <!-- Settings Configuration Panel -->
-    <div class="config-panel">
-      <div class="input-group">
-        <label>LTA AccountKey API Key</label>
-        <input
-          type="password"
-          id="apiKeyInput"
-          placeholder="Paste LTA Key Here"
-          onchange="saveConfig()"
-        />
+    <!-- COLLAPSIBLE SETTINGS DRAWER -->
+    <div
+      id="config-panel"
+      class="hidden border-b border-slate-800 bg-slate-900/90 px-4 sm:px-6 py-4 backdrop-blur-md"
+    >
+      <div
+        class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 text-xs"
+      >
+        <div>
+          <label class="block font-medium text-slate-400 mb-1"
+            >LTA DataMall API Key (AccountKey)</label
+          >
+          <div class="relative">
+            <input
+              type="password"
+              id="api-key-input"
+              placeholder="Paste LTA AccountKey"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl px-3 py-2 font-mono-num text-slate-200 placeholder-slate-600 transition"
+            />
+            <button
+              id="toggle-key-visibility"
+              type="button"
+              class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
+            >
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-400 mb-1"
+            >5-Digit Bus Stop Code</label
+          >
+          <input
+            type="text"
+            id="bus-stop-input"
+            maxlength="5"
+            placeholder="e.g. 67011"
+            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl px-3 py-2 font-mono-num font-bold text-slate-100 placeholder-slate-600 transition uppercase"
+          />
+        </div>
+
+        <div class="flex items-end gap-2">
+          <button
+            id="save-settings-btn"
+            type="button"
+            class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2"
+          >
+            <i data-lucide="save" class="w-4 h-4"></i>
+            Apply & Reload
+          </button>
+        </div>
       </div>
-      <div class="input-group">
-        <label>Bus Stop Code</label>
-        <input
-          type="text"
-          id="busStopInput"
-          placeholder="e.g. 67011"
-          onchange="saveConfig()"
-        />
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main
+      class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-4"
+    >
+      <div
+        class="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 backdrop-blur-sm"
+      >
+        <div>
+          <div
+            class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5"
+          >
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i>
+            Active Bus Stop
+          </div>
+          <div class="flex items-baseline gap-3 mt-1">
+            <span
+              id="display-stop-code"
+              class="font-mono-num text-2xl sm:text-3xl font-extrabold text-amber-400 glow-amber"
+              >------</span
+            >
+            <span
+              id="display-stop-name"
+              class="text-slate-200 text-sm sm:text-base font-medium truncate max-w-xs sm:max-w-md"
+            >
+              Loading bus stop information...
+            </span>
+          </div>
+        </div>
+
+        <div
+          class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-slate-800 pt-3 sm:pt-0"
+        >
+          <div class="text-xs text-slate-400">
+            Updated:
+            <span
+              id="last-updated-time"
+              class="font-mono-num text-slate-200 font-semibold"
+              >--:--:--</span
+            >
+          </div>
+
+          <button
+            id="fetch-btn"
+            type="button"
+            class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold px-4 py-2.5 rounded-xl border border-slate-700/80 transition flex items-center gap-2 shadow-md"
+          >
+            <i
+              data-lucide="refresh-cw"
+              class="w-4 h-4 text-amber-400"
+              id="refresh-icon"
+            ></i>
+            <span>Refresh</span>
+            <span
+              class="text-xs font-mono-num text-amber-400 bg-slate-950 px-2 py-0.5 rounded-md border border-slate-800"
+              id="auto-refresh-timer"
+              >30s</span
+            >
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- Shortcuts Filter Bar -->
-    <div class="shortcuts-bar" id="shortcutsBar">
-      <!-- Shortcut buttons rendered dynamically -->
-    </div>
+      <!-- Bus Arrivals Grid Container -->
+      <div
+        id="arrivals-container"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+      ></div>
 
-    <div class="error-msg" id="errorBox"></div>
+      <!-- Empty / Error State -->
+      <div
+        id="empty-state"
+        class="hidden flex-1 min-h-[300px] bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-8 text-center"
+      >
+        <div
+          class="p-4 bg-slate-900 rounded-full text-slate-600 mb-3 border border-slate-800"
+        >
+          <i data-lucide="bus-front" class="w-8 h-8"></i>
+        </div>
+        <h3 class="font-semibold text-slate-300 text-base" id="empty-title">
+          No Bus Arrival Data
+        </h3>
+        <p class="text-xs text-slate-500 max-w-xs mt-1" id="empty-subtitle">
+          Checking for upcoming buses...
+        </p>
+      </div>
+    </main>
 
-    <!-- Bus Cards -->
-    <div class="bus-grid" id="busGrid">
-      <!-- Bus arrivals will render here -->
-    </div>
+    <!-- FOOTER -->
+    <footer
+      class="border-t border-slate-800/60 py-3 px-6 text-center text-xs text-slate-600 flex items-center justify-between max-w-7xl mx-auto w-full"
+    >
+      <span>SG Bus Arrival &bull; SGT Clock</span>
+      <span id="active-filter-label" class="text-amber-400/80 font-mono-num"
+        >Filter: All Buses</span
+      >
+    </footer>
 
+    <!-- SCRIPT -->
     <script>
-      // --- CONFIGURATION & SHORTCUTS ---
-      const HARDCODED_API_KEY = ""; // Optionally paste key here
-      const DEFAULT_BUS_STOP = "67011"; // Change to your default bus stop code
+      /* ========================================================================
+       1. HARDCODED CONFIGURATION & DESTINATION SHORTCUTS
+       ======================================================================== */
+      const HARDCODED_API_KEY = ""; // Paste your LTA AccountKey here if desired
+      const DEFAULT_BUS_STOP = "67011"; // Default morning bus stop code
 
-      const SHORTCUTS = [
-        { label: "All Buses", buses: [] },
-        { label: "To Kajima", buses: ["45", "25", "854"] },
+      const DESTINATION_SHORTCUTS = [
+        { id: "all", label: "All Buses", icon: "bus", buses: [] },
         {
+          id: "kajima",
+          label: "To Kajima",
+          icon: "building-2",
+          buses: ["15", "150"],
+        },
+        {
+          id: "eunos",
           label: "To Eunos",
+          icon: "navigation",
+          buses: ["15", "21", "60", "150"],
+        },
+        {
+          id: "kembangan-bedok",
+          label: "To Kembangan/Bedok",
+          icon: "map-pin",
+          buses: ["2", "7", "24", "28", "30"],
+        },
+        {
+          id: "orchard",
+          label: "To Orchard",
+          icon: "shopping-bag",
           buses: [
-            "15",
-            "21",
-            "22",
-            "25",
-            "51",
-            "55",
-            "60",
-            "61",
-            "63",
-            "63M",
-            "854",
-            "93",
-            "94",
+            "7",
+            "14",
+            "16",
+            "65",
+            "106",
+            "111",
+            "123",
+            "174",
+            "175",
+            "502",
           ],
         },
-        { label: "To Paya Lebar", buses: ["21", "51"] },
-        { label: "To Kembangan/Bedok", buses: ["25", "854"] },
-        { label: "To East Coast", buses: ["15", "55"] },
-        { label: "To Orchard", buses: ["5"] },
       ];
 
-      let activeFilterBuses = [];
-      let refreshTimer = null;
-      let countdownInterval = null;
-      let secondsLeft = 30;
+      /* Global State */
+      let currentShortcut = DESTINATION_SHORTCUTS[0];
+      let autoRefreshSeconds = 30;
+      let countdownTimer = null;
+      let isFetching = false;
+      let lastFetchedData = null;
 
-      // --- INITIALIZATION ---
-      window.onload = () => {
-        // Load saved settings from LocalStorage or fallbacks
-        document.getElementById("apiKeyInput").value =
-          localStorage.getItem("lta_api_key") || HARDCODED_API_KEY;
-        document.getElementById("busStopInput").value =
-          localStorage.getItem("lta_bus_stop") || DEFAULT_BUS_STOP;
+      /* DOM Elements */
+      const clockTimeEl = document.getElementById("clock-time");
+      const clockDateEl = document.getElementById("clock-date");
+      const shortcutsContainer = document.getElementById("shortcuts-container");
+      const apiKeyInput = document.getElementById("api-key-input");
+      const busStopInput = document.getElementById("bus-stop-input");
+      const configPanel = document.getElementById("config-panel");
+      const toggleConfigBtn = document.getElementById("toggle-config-btn");
+      const saveSettingsBtn = document.getElementById("save-settings-btn");
+      const toggleKeyVisibilityBtn = document.getElementById(
+        "toggle-key-visibility",
+      );
+      const fetchBtn = document.getElementById("fetch-btn");
+      const refreshIcon = document.getElementById("refresh-icon");
+      const autoRefreshTimerEl = document.getElementById("auto-refresh-timer");
+      const arrivalsContainer = document.getElementById("arrivals-container");
+      const emptyState = document.getElementById("empty-state");
+      const emptyTitle = document.getElementById("empty-title");
+      const emptySubtitle = document.getElementById("empty-subtitle");
+      const displayStopCode = document.getElementById("display-stop-code");
+      const displayStopName = document.getElementById("display-stop-name");
+      const lastUpdatedTime = document.getElementById("last-updated-time");
+      const demoBadge = document.getElementById("demo-badge");
+      const statusDot = document.getElementById("status-dot");
+      const statusText = document.getElementById("status-text");
+      const activeFilterLabel = document.getElementById("active-filter-label");
 
-        setupShortcuts();
+      /* Initialize App */
+      window.addEventListener("DOMContentLoaded", () => {
+        apiKeyInput.value =
+          localStorage.getItem("sg_bus_api") || HARDCODED_API_KEY;
+        busStopInput.value =
+          localStorage.getItem("sg_bus_stop") || DEFAULT_BUS_STOP;
+
+        renderShortcutsBar();
         updateClock();
         setInterval(updateClock, 1000);
 
-        fetchBusData();
-        startAutoRefresh();
-      };
+        fetchBtn.addEventListener("click", () => handleFetchArrivals());
+        toggleConfigBtn.addEventListener("click", () =>
+          configPanel.classList.toggle("hidden"),
+        );
+        saveSettingsBtn.addEventListener("click", () => {
+          localStorage.setItem("sg_bus_api", apiKeyInput.value.trim());
+          localStorage.setItem("sg_bus_stop", busStopInput.value.trim());
+          configPanel.classList.add("hidden");
+          handleFetchArrivals();
+        });
+        toggleKeyVisibilityBtn.addEventListener("click", () => {
+          apiKeyInput.type =
+            apiKeyInput.type === "password" ? "text" : "password";
+        });
 
-      function saveConfig() {
-        const key = document.getElementById("apiKeyInput").value.trim();
-        const stop = document.getElementById("busStopInput").value.trim();
-        localStorage.setItem("lta_api_key", key);
-        localStorage.setItem("lta_bus_stop", stop);
-        fetchBusData();
-      }
+        handleFetchArrivals();
+        startAutoRefreshTimer();
+      });
 
-      // --- REAL-TIME CLOCK ---
+      /* Live Clock Updates (SGT - Asia/Singapore) */
       function updateClock() {
         const now = new Date();
-        // Format SGT time
-        document.getElementById("clock").innerText = now.toLocaleTimeString(
-          "en-SG",
-          {
-            timeZone: "Asia/Singapore",
-            hour12: false,
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          },
-        );
-        document.getElementById("date").innerText = now.toLocaleDateString(
-          "en-SG",
-          {
-            timeZone: "Asia/Singapore",
-            weekday: "long",
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          },
-        );
+        clockTimeEl.textContent = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Singapore",
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }).format(now);
+        clockDateEl.textContent = `${new Intl.DateTimeFormat("en-SG", { timeZone: "Asia/Singapore", weekday: "short", year: "numeric", month: "short", day: "numeric" }).format(now)} (SGT)`;
       }
 
-      // --- SHORTCUTS BAR ---
-      function setupShortcuts() {
-        const bar = document.getElementById("shortcutsBar");
-        bar.innerHTML = "";
-        SHORTCUTS.forEach((sc, index) => {
+      /* Destination Shortcuts Navigation Bar */
+      function renderShortcutsBar() {
+        shortcutsContainer.innerHTML = "";
+        DESTINATION_SHORTCUTS.forEach((shortcut) => {
+          const isActive = shortcut.id === currentShortcut.id;
           const btn = document.createElement("button");
-          btn.className = `shortcut-btn ${index === 0 ? "active" : ""}`;
-          btn.innerText = sc.label;
-          btn.onclick = () => {
-            document
-              .querySelectorAll(".shortcut-btn")
-              .forEach((b) => b.classList.remove("active"));
-            btn.classList.add("active");
-            activeFilterBuses = sc.buses;
-            fetchBusData();
-          };
-          bar.appendChild(btn);
-        });
-      }
-
-      // --- DATA FETCHING (WITH CORS PROXY) ---
-      async function fetchBusData() {
-        const apiKey = document.getElementById("apiKeyInput").value.trim();
-        const stopCode = document.getElementById("busStopInput").value.trim();
-        const errorBox = document.getElementById("errorBox");
-
-        if (!stopCode) {
-          showError("Please enter a valid 5-digit Bus Stop Code.");
-          return;
-        }
-
-        // 1. If no API Key is provided, render Mock Data automatically
-        if (!apiKey) {
-          showError("No API Key entered. Displaying Demo/Mock Data.");
-          renderBuses(getMockData());
-          resetCountdown();
-          return;
-        }
-
-        errorBox.style.display = "none";
-
-        // 2. Fetch directly using corsproxy.io wrapper
-        const targetUrl = `https://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode=${stopCode}`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-
-        try {
-          const response = await fetch(proxyUrl, {
-            method: "GET",
-            headers: {
-              AccountKey: apiKey,
-              accept: "application/json",
-            },
+          btn.type = "button";
+          btn.className = `flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap active:scale-95 ${
+            isActive
+              ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
+              : "bg-slate-950/80 text-slate-300 hover:text-amber-400 hover:bg-slate-900 border border-slate-800"
+          }`;
+          btn.innerHTML = `<i data-lucide="${shortcut.icon}" class="w-4 h-4"></i><span>${shortcut.label}</span>`;
+          btn.addEventListener("click", () => {
+            currentShortcut = shortcut;
+            renderShortcutsBar();
+            activeFilterLabel.textContent = `Filter: ${shortcut.label}`;
+            if (lastFetchedData) renderArrivals(lastFetchedData);
+            else handleFetchArrivals();
           });
-
-          if (!response.ok) {
-            throw new Error(`Server returned HTTP ${response.status}`);
-          }
-
-          const data = await response.json();
-          if (data.Services) {
-            renderBuses(data.Services);
-          } else {
-            showError("Unexpected API response structure.");
-          }
-        } catch (err) {
-          console.error("LTA Fetch Error:", err);
-          showError(`CORS/Fetch Error: ${err.message}. Displaying Demo Data.`);
-          renderBuses(getMockData());
-        }
-
-        resetCountdown();
-      }
-
-      // --- RENDER BUS CARDS ---
-      function renderBuses(services) {
-        const grid = document.getElementById("busGrid");
-        grid.innerHTML = "";
-
-        // Filter buses if a destination shortcut is active
-        let filtered = services;
-        if (activeFilterBuses.length > 0) {
-          filtered = services.filter((s) =>
-            activeFilterBuses.includes(s.ServiceNo),
-          );
-        }
-
-        if (filtered.length === 0) {
-          grid.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">No bus services found matching active filter.</div>`;
-          return;
-        }
-
-        filtered.forEach((service) => {
-          const card = document.createElement("div");
-          card.className = "bus-card";
-
-          const next1 = parseETA(service.NextBus);
-          const next2 = parseETA(service.NextBus2);
-          const next3 = parseETA(service.NextBus3);
-
-          card.innerHTML = `
-          <div class="bus-header">
-            <span class="bus-number">${service.ServiceNo}</span>
-          </div>
-          <div class="arrivals-row">
-            ${renderSlot(next1, true)}
-            ${renderSlot(next2, false)}
-            ${renderSlot(next3, false)}
-          </div>
-        `;
-          grid.appendChild(card);
+          shortcutsContainer.appendChild(btn);
         });
+        lucide.createIcons();
       }
 
-      function renderSlot(etaObj, isFirst) {
-        if (!etaObj) {
-          return `<div class="arrival-slot"><div class="eta-time" style="color:var(--text-sub);">-</div></div>`;
-        }
-
-        const timeClass = etaObj.mins <= 0 ? "arr" : "";
-        const text =
-          etaObj.mins <= 0
-            ? "Arr"
-            : `${etaObj.mins} <span style="font-size:0.8rem">m</span>`;
-
-        return `
-        <div class="arrival-slot ${isFirst ? "next-bus" : ""}">
-          <div class="eta-time ${timeClass}">${text}</div>
-          <div class="meta-tags">
-            ${getLoadBadge(etaObj.load)}
-            ${getTypeBadge(etaObj.type)}
-          </div>
-        </div>
-      `;
-      }
-
-      function parseETA(busObj) {
-        if (!busObj || !busObj.EstimatedArrival) return null;
-        const arrivalTime = new Date(busObj.EstimatedArrival);
-        const now = new Date();
-        const diffMs = arrivalTime - now;
-        const mins = Math.floor(diffMs / 60000);
-
-        return {
-          mins: mins < 0 ? 0 : mins,
-          load: busObj.Load,
-          type: busObj.Feature === "WAB" ? busObj.Type : busObj.Type,
-        };
-      }
-
-      function getLoadBadge(load) {
-        if (load === "SEA") return `<span class="badge badge-sea">Seats</span>`;
-        if (load === "SDA") return `<span class="badge badge-sda">Stand</span>`;
-        if (load === "LSD") return `<span class="badge badge-lsd">Limit</span>`;
-        return "";
-      }
-
-      function getTypeBadge(type) {
-        if (type === "DD")
-          return `<span class="badge badge-type">Double</span>`;
-        if (type === "BD") return `<span class="badge badge-type">Bendy</span>`;
-        return `<span class="badge badge-type">Single</span>`;
-      }
-
-      function showError(msg) {
-        const errorBox = document.getElementById("errorBox");
-        errorBox.innerText = msg;
-        errorBox.style.display = "block";
-      }
-
-      // --- AUTO-REFRESH TIMER ---
-      function startAutoRefresh() {
-        clearInterval(countdownInterval);
-        countdownInterval = setInterval(() => {
-          secondsLeft--;
-          const pct = (secondsLeft / 30) * 100;
-          document.getElementById("progress-bar").style.width = `${pct}%`;
-
-          if (secondsLeft <= 0) {
-            fetchBusData();
+      /* Auto Refresh Loop */
+      function startAutoRefreshTimer() {
+        if (countdownTimer) clearInterval(countdownTimer);
+        autoRefreshSeconds = 30;
+        autoRefreshTimerEl.textContent = `${autoRefreshSeconds}s`;
+        countdownTimer = setInterval(() => {
+          autoRefreshSeconds--;
+          if (autoRefreshSeconds <= 0) {
+            handleFetchArrivals(true);
+            autoRefreshSeconds = 30;
           }
+          autoRefreshTimerEl.textContent = `${autoRefreshSeconds}s`;
         }, 1000);
       }
 
-      function resetCountdown() {
-        secondsLeft = 30;
-        document.getElementById("progress-bar").style.width = "100%";
+      /* Fetch Bus Arrival Data */
+      async function handleFetchArrivals(isAuto = false) {
+        if (isFetching) return;
+        const apiKey = apiKeyInput.value.trim();
+        const busStopCode = busStopInput.value.trim() || DEFAULT_BUS_STOP;
+
+        isFetching = true;
+        refreshIcon.classList.add("animate-spin");
+        displayStopCode.textContent = busStopCode;
+
+        try {
+          let data = null;
+          if (!apiKey) {
+            demoBadge.classList.remove("hidden");
+            statusDot.className =
+              "inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+            statusText.textContent = "Demo Mode";
+            await new Promise((r) => setTimeout(r, 300));
+
+            // Mock realistic demo data for testing without LTA AccountKey
+            data = {
+              BusStopCode: busStopCode,
+              Services: [
+                {
+                  ServiceNo: "2",
+                  Operator: "SBST",
+                  NextBus: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 120000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "DD",
+                    Feature: "WAB",
+                  },
+                  NextBus2: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 540000,
+                    ).toISOString(),
+                    Load: "SDA",
+                    Type: "SD",
+                  },
+                  NextBus3: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 1020000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "DD",
+                  },
+                },
+                {
+                  ServiceNo: "7",
+                  Operator: "SBST",
+                  NextBus: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 30000,
+                    ).toISOString(),
+                    Load: "SDA",
+                    Type: "DD",
+                    Feature: "WAB",
+                  },
+                  NextBus2: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 420000,
+                    ).toISOString(),
+                    Load: "LSD",
+                    Type: "DD",
+                  },
+                  NextBus3: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 840000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "SD",
+                  },
+                },
+                {
+                  ServiceNo: "15",
+                  Operator: "GAS",
+                  NextBus: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 90000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "SD",
+                    Feature: "WAB",
+                  },
+                  NextBus2: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 450000,
+                    ).toISOString(),
+                    Load: "SDA",
+                    Type: "DD",
+                  },
+                  NextBus3: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 900000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "SD",
+                  },
+                },
+                {
+                  ServiceNo: "21",
+                  Operator: "SBST",
+                  NextBus: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 200000,
+                    ).toISOString(),
+                    Load: "SDA",
+                    Type: "DD",
+                    Feature: "WAB",
+                  },
+                  NextBus2: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 600000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "SD",
+                  },
+                  NextBus3: {},
+                },
+                {
+                  ServiceNo: "60",
+                  Operator: "SBST",
+                  NextBus: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 360000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "SD",
+                    Feature: "WAB",
+                  },
+                  NextBus2: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 780000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "DD",
+                  },
+                  NextBus3: {},
+                },
+                {
+                  ServiceNo: "150",
+                  Operator: "SBST",
+                  NextBus: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 60000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "SD",
+                    Feature: "WAB",
+                  },
+                  NextBus2: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 660000,
+                    ).toISOString(),
+                    Load: "SDA",
+                    Type: "SD",
+                  },
+                  NextBus3: {
+                    EstimatedArrival: new Date(
+                      Date.now() + 1200000,
+                    ).toISOString(),
+                    Load: "SEA",
+                    Type: "SD",
+                  },
+                },
+              ],
+            };
+            displayStopName.textContent = "Bus Stop (Demo Mode)";
+          } else {
+            demoBadge.classList.add("hidden");
+            statusDot.className =
+              "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+            statusText.textContent = "Live DataMall API";
+
+            const ltaUrl = `https://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode=${busStopCode}`;
+            const response = await fetch(
+              `https://api.allorigins.win/raw?url=${encodeURIComponent(ltaUrl)}`,
+              {
+                headers: { AccountKey: apiKey, accept: "application/json" },
+              },
+            );
+
+            if (!response.ok) throw new Error("API request failed");
+            data = await response.json();
+            displayStopName.textContent = `Bus Stop ${busStopCode}`;
+          }
+
+          lastFetchedData = data;
+          renderArrivals(data);
+
+          const now = new Date();
+          lastUpdatedTime.textContent = now.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          if (!isAuto) startAutoRefreshTimer();
+        } catch (err) {
+          console.error("Fetch Error:", err);
+          showEmptyState(
+            "Connection Error",
+            "Failed to load live LTA data. Verify your API Key or try Demo Mode.",
+          );
+          statusDot.className = "inline-block w-2 h-2 rounded-full bg-rose-500";
+          statusText.textContent = "API Error";
+        } finally {
+          isFetching = false;
+          refreshIcon.classList.remove("animate-spin");
+        }
       }
 
-      // --- MOCK DATA FOR DEMO MODE ---
-      function getMockData() {
-        const now = new Date();
-        return [
-          {
-            ServiceNo: "15",
-            NextBus: {
-              EstimatedArrival: new Date(now.getTime() + 100000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-            NextBus2: {
-              EstimatedArrival: new Date(now.getTime() + 480000).toISOString(),
-              Load: "SDA",
-              Type: "DD",
-            },
-            NextBus3: {
-              EstimatedArrival: new Date(now.getTime() + 900000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-          },
-          {
-            ServiceNo: "21",
-            NextBus: {
-              EstimatedArrival: new Date(now.getTime() + 240000).toISOString(),
-              Load: "SDA",
-              Type: "DD",
-            },
-            NextBus2: {
-              EstimatedArrival: new Date(now.getTime() + 720000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-            NextBus3: {
-              EstimatedArrival: new Date(now.getTime() + 1200000).toISOString(),
-              Load: "LSD",
-              Type: "DD",
-            },
-          },
-          {
-            ServiceNo: "60",
-            NextBus: {
-              EstimatedArrival: new Date(now.getTime() + 30000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-            NextBus2: {
-              EstimatedArrival: new Date(now.getTime() + 360000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-            NextBus3: {
-              EstimatedArrival: new Date(now.getTime() + 840000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-          },
-          {
-            ServiceNo: "150",
-            NextBus: {
-              EstimatedArrival: new Date(now.getTime() + 600000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-            NextBus2: {
-              EstimatedArrival: new Date(now.getTime() + 1100000).toISOString(),
-              Load: "SEA",
-              Type: "SD",
-            },
-            NextBus3: {},
-          },
-        ];
+      /* Render Services Grid */
+      function renderArrivals(data) {
+        arrivalsContainer.innerHTML = "";
+        if (!data || !data.Services || data.Services.length === 0) {
+          showEmptyState(
+            "No Bus Services",
+            `No active services found for stop ${data.BusStopCode}.`,
+          );
+          return;
+        }
+
+        let services = data.Services;
+        if (currentShortcut.buses && currentShortcut.buses.length > 0) {
+          services = services.filter((s) =>
+            currentShortcut.buses.includes(s.ServiceNo),
+          );
+        }
+
+        if (services.length === 0) {
+          showEmptyState(
+            `No Buses (${currentShortcut.label})`,
+            `None of the buses for '${currentShortcut.label}' are currently arriving.`,
+          );
+          return;
+        }
+
+        emptyState.classList.add("hidden");
+        arrivalsContainer.classList.remove("hidden");
+
+        services.sort((a, b) => {
+          const numA = parseInt(a.ServiceNo, 10);
+          const numB = parseInt(b.ServiceNo, 10);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return a.ServiceNo.localeCompare(b.ServiceNo);
+        });
+
+        services.forEach((service) => {
+          arrivalsContainer.insertAdjacentHTML(
+            "beforeend",
+            createBusCardHtml(service),
+          );
+        });
+        lucide.createIcons();
+      }
+
+      /* Build HTML for Individual Bus Card */
+      function createBusCardHtml(service) {
+        const b1 = formatNextBus(service.NextBus);
+        const b2 = formatNextBus(service.NextBus2);
+        const b3 = formatNextBus(service.NextBus3);
+
+        return `
+        <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl hover:border-slate-700 transition backdrop-blur-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+            <div class="flex items-center gap-3">
+              <span class="font-mono-num text-3xl font-extrabold text-amber-400 glow-amber tracking-tight">${service.ServiceNo}</span>
+              <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase px-2 py-0.5 rounded bg-slate-950 border border-slate-800">${service.Operator || "BUS"}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 font-medium">Next Arrivals</div>
+          </div>
+          <div class="py-3 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] font-medium text-slate-400">Next Bus</div>
+              <div class="font-mono-num text-3xl sm:text-4xl font-extrabold ${b1.textColor} mt-0.5">${b1.timingText}</div>
+            </div>
+            <div class="flex flex-col items-end gap-1.5">
+              ${b1.loadBadge}
+              <div class="text-[11px] text-slate-400 font-mono-num flex items-center gap-1.5 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
+                <span>${b1.typeText}</span>${b1.featureIcon}
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800/80">
+            <div class="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/60 flex items-center justify-between">
+              <div><div class="text-[10px] text-slate-500">2nd Bus</div><div class="font-mono-num text-sm font-bold text-slate-200 mt-0.5">${b2.timingText}</div></div>
+              <div class="flex flex-col items-end gap-1">${b2.loadPill}<span class="text-[9px] text-slate-500 font-mono-num">${b2.typeText}</span></div>
+            </div>
+            <div class="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/60 flex items-center justify-between">
+              <div><div class="text-[10px] text-slate-500">3rd Bus</div><div class="font-mono-num text-sm font-bold text-slate-300 mt-0.5">${b3.timingText}</div></div>
+              <div class="flex flex-col items-end gap-1">${b3.loadPill}<span class="text-[9px] text-slate-500 font-mono-num">${b3.typeText}</span></div>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      /* Format ETA, Capacity Load, and Vehicle Type Attributes */
+      function formatNextBus(busObj) {
+        if (!busObj || !busObj.EstimatedArrival) {
+          return {
+            timingText: "--",
+            textColor: "text-slate-600",
+            loadBadge:
+              '<span class="text-[10px] text-slate-600">No Data</span>',
+            loadPill: '<span class="w-2 h-2 rounded-full bg-slate-800"></span>',
+            typeText: "-",
+            featureIcon: "",
+          };
+        }
+        const diffMins = Math.floor(
+          (new Date(busObj.EstimatedArrival) - new Date()) / 60000,
+        );
+        let timingText =
+          diffMins <= 0 ? "Arr" : diffMins === 1 ? "1 min" : `${diffMins} mins`;
+        let textColor =
+          diffMins <= 0
+            ? "text-emerald-400 glow-green animate-pulse"
+            : "text-amber-400";
+
+        let loadBadge = "",
+          loadPill = "";
+        if (busObj.Load === "SEA") {
+          loadBadge =
+            '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/50">Seats Avail</span>';
+          loadPill =
+            '<span class="w-2 h-2 rounded-full bg-emerald-500"></span>';
+        } else if (busObj.Load === "SDA") {
+          loadBadge =
+            '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-800/50">Standing</span>';
+          loadPill = '<span class="w-2 h-2 rounded-full bg-amber-500"></span>';
+        } else if (busObj.Load === "LSD") {
+          loadBadge =
+            '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-800/50">Limited Stand</span>';
+          loadPill = '<span class="w-2 h-2 rounded-full bg-rose-500"></span>';
+        }
+
+        let typeText = busObj.Type || "SD";
+        let featureIcon =
+          busObj.Feature === "WAB"
+            ? '<i data-lucide="accessibility" class="w-3 h-3 text-amber-400"></i>'
+            : "";
+        return {
+          timingText,
+          textColor,
+          loadBadge,
+          loadPill,
+          typeText,
+          featureIcon,
+        };
+      }
+
+      function showEmptyState(title, subtitle) {
+        arrivalsContainer.classList.add("hidden");
+        emptyState.classList.remove("hidden");
+        emptyTitle.textContent = title;
+        emptySubtitle.textContent = subtitle;
       }
     </script>
   </body>
