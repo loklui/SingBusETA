@@ -82,10 +82,10 @@
       }
       .big,
       .filters button {
-        font-size: 1.2rem;
-        padding: 0.75rem 1.5rem;
-        min-height: 3.2rem;
-        border-radius: 0.85rem;
+        font-size: 1rem;
+        padding: 0.5rem 0.9rem;
+        min-height: 1.5rem;
+        border-radius: 0.5rem;
       }
       input {
         width: 7rem;
@@ -118,17 +118,31 @@
         text-transform: uppercase;
         align-self: center;
       }
+
+      .hdr .clk {
+        margin-left: auto;
+        padding: 0.4rem 1.1rem;
+        text-align: right;
+      }
+      .hdr .clock {
+        color: #12373f;
+        font-size: 1.7rem;
+      }
+      .hdr .date {
+        color: #2f5f66;
+        margin-top: 0.1rem;
+      }
       .filters {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.7rem;
+        gap: 0.5rem;
         margin-bottom: 1rem;
       }
       .tab {
         display: inline-block;
         background: #e4e4e4;
         color: #222;
-        font-size: 0.8rem;
+        font-size: 1rem;
         padding: 0.2rem 0.7rem;
         border-radius: 0.4rem 0.4rem 0 0;
       }
@@ -168,7 +182,7 @@
       .chip .s {
         background: var(--lime);
         color: #1b2b0a;
-        font-size: 1.6rem;
+        font-size: 2.3rem;
         padding: 0.1rem 0.5rem;
         clip-path: polygon(14% 0, 100% 0, 100% 100%, 14% 100%, 0 50%);
       }
@@ -190,7 +204,7 @@
         background: var(--lime);
         color: #1b2b0a;
         border-radius: 0.7rem;
-        font-size: 2.4rem;
+        font-size: 3rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -280,28 +294,28 @@
   <body>
     <div class="wrap">
       <div class="top">
-        <div class="ctrl" id="stops" style="margin: 0"></div>
-        <div>
-          <div class="clock" id="clock">--:--:--</div>
-          <div class="date" id="date"></div>
+        <div class="ctrl" style="margin: 0">
+          <span class="ctrl" id="stops" style="margin: 0"></span>
+          <input
+            id="stopIn"
+            class="big"
+            maxlength="5"
+            inputmode="numeric"
+            placeholder="Stop code"
+            aria-label="Bus stop code"
+          />
+          <button id="go" class="big">Go</button>
         </div>
-      </div>
-      <div class="ctrl">
-        <input
-          id="stopIn"
-          maxlength="5"
-          inputmode="numeric"
-          placeholder="Stop code"
-          aria-label="Bus stop code"
-        />
-        <button id="go">Go</button>
-        <span class="sp"></span>
-        <button id="refresh">Refresh <span id="cd">30</span>s</button>
+        <button id="refresh" class="big">Refresh <span id="cd"></span>s</button>
       </div>
 
       <div class="hdr">
         <div class="code" id="hCode">-----</div>
         <div class="name" id="hName">Loading…</div>
+        <div class="clk">
+          <div class="clock" id="clock">--:--:--</div>
+          <div class="date" id="date"></div>
+        </div>
       </div>
 
       <div class="filters" id="filters"></div>
@@ -333,6 +347,7 @@
       /* ========== CONFIG ========== */
       const HARDCODED_API_KEY = ""; // leave empty when using PROXY_URL
       const PROXY_URL = "https://lta-proxy.luikwanlok.workers.dev"; // e.g. "https://lta-proxy.yourname.workers.dev" (no trailing slash)
+      const REFRESH_SECS = 40;
 
       // ✏️ Your two nearby stops, each with its OWN destination shortcuts.
       // "All Buses" is added automatically. buses = the service numbers to show.
@@ -381,11 +396,11 @@
 
       /* ========== STATE ========== */
       const $ = (id) => document.getElementById(id);
-      const ALL = { label: "All Buses", buses: [] };
+      const ALL = { label: "ALL", buses: [] };
       let stopCode = BUS_STOPS[0].code,
         filter = ALL;
       let data = null,
-        secs = 30,
+        secs = REFRESH_SECS,
         busy = false;
       try {
         stopCode = localStorage.getItem("sg_bus_stop") || stopCode;
@@ -508,7 +523,7 @@
       async function load(auto = false) {
         if (busy) return;
         busy = true;
-        secs = 30;
+        secs = REFRESH_SECS;
         $("hCode").textContent = stopCode;
         $("hName").textContent = stopName(stopCode);
         try {
@@ -570,7 +585,7 @@
           .map((s) => ({ n: s.ServiceNo, m: mins(s.NextBus) }))
           .filter((x) => x.m !== null)
           .sort((a, b) => a.m - b.m)
-          .slice(0, 4);
+          .slice(0, 5);
         $("inc").innerHTML = next.length
           ? next
               .map(
