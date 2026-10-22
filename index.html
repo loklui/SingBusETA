@@ -30,21 +30,17 @@
       .font-mono-num {
         font-family: "JetBrains Mono", monospace;
       }
+      /* Glow effect for high contrast LEDs */
+      .glow-cyan {
+        text-shadow: 0 0 14px rgba(6, 182, 212, 0.45);
+      }
       .glow-amber {
         text-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
       }
       .glow-green {
         text-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
       }
-      /* Hide scrollbar for Chrome, Safari and Opera */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      /* Hide scrollbar for IE, Edge and Firefox */
-      .no-scrollbar {
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
-      }
+      /* Custom subtle scrollbars */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -61,7 +57,7 @@
   <body
     class="h-full flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950"
   >
-    <!-- TOP HEADER & OVERSIZED LIVE CLOCK (SGT) -->
+    <!-- TOP HEADER & LIVE CLOCK (SGT) -->
     <header
       class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5"
     >
@@ -132,7 +128,7 @@
       </div>
     </header>
 
-    <!-- DESTINATION SHORTCUTS PILL BAR -->
+    <!-- DESTINATION SHORTCUTS BAR -->
     <div
       class="bg-slate-900/60 border-b border-slate-800/80 px-4 sm:px-6 py-2.5 backdrop-blur-sm z-20"
     >
@@ -140,7 +136,7 @@
         class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-1"
         id="shortcuts-container"
       >
-        <!-- Shortcut buttons generated dynamically from DESTINATION_SHORTCUTS array -->
+        <!-- Shortcut buttons will be dynamically generated from DESTINATION_SHORTCUTS array -->
       </div>
     </div>
 
@@ -154,23 +150,25 @@
       >
         <div>
           <label class="block font-medium text-slate-400 mb-1"
-            >LTA DataMall API Key (AccountKey)</label
+            >LTA DataMall API Key</label
           >
           <div class="relative">
             <input
               type="password"
               id="api-key-input"
-              placeholder="Paste LTA AccountKey"
+              placeholder="LTA AccountKey"
               class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl px-3 py-2 font-mono-num text-slate-200 placeholder-slate-600 transition"
             />
             <button
               id="toggle-key-visibility"
-              type="button"
               class="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
             >
               <i data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
+          <p class="text-[11px] text-slate-500 mt-1">
+            Configured via hardcoded constants or edit here.
+          </p>
         </div>
 
         <div>
@@ -184,12 +182,14 @@
             placeholder="e.g. 67011"
             class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl px-3 py-2 font-mono-num font-bold text-slate-100 placeholder-slate-600 transition uppercase"
           />
+          <p class="text-[11px] text-slate-500 mt-1">
+            Default stop loaded from config.
+          </p>
         </div>
 
         <div class="flex items-end gap-2">
           <button
             id="save-settings-btn"
-            type="button"
             class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2"
           >
             <i data-lucide="save" class="w-4 h-4"></i>
@@ -203,6 +203,7 @@
     <main
       class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-4"
     >
+      <!-- Stop Summary & Refresh Controls Header -->
       <div
         class="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 backdrop-blur-sm"
       >
@@ -242,7 +243,6 @@
 
           <button
             id="fetch-btn"
-            type="button"
             class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 font-bold px-4 py-2.5 rounded-xl border border-slate-700/80 transition flex items-center gap-2 shadow-md"
           >
             <i
@@ -264,9 +264,11 @@
       <div
         id="arrivals-container"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4"
-      ></div>
+      >
+        <!-- Dynamic bus cards render here -->
+      </div>
 
-      <!-- Empty / Error State -->
+      <!-- Empty / Message State -->
       <div
         id="empty-state"
         class="hidden flex-1 min-h-[300px] bg-slate-900/20 border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-8 text-center"
@@ -295,61 +297,214 @@
       >
     </footer>
 
-    <!-- SCRIPT -->
+    <!-- APPLICATION LOGIC & HARDCODED CONFIGURATION -->
     <script>
       /* ========================================================================
-       1. HARDCODED CONFIGURATION & DESTINATION SHORTCUTS
+       1. HARDCODED CONFIGURATION & SHORTCUT MAPPING
        ======================================================================== */
-      const HARDCODED_API_KEY = ""; // Paste your LTA AccountKey here if desired
-      const DEFAULT_BUS_STOP = "67011"; // Default morning bus stop code
 
+      // 🔑 INSERT YOUR LTA DATAMALL ACCOUNTKEY HERE
+      // Request a free key instantly at: https://datamall.lta.gov.sg/content/datamall/en/request-apikey.html
+      const HARDCODED_API_KEY = ""; // leave empty when using PROXY_URL (key stays on the server)
+
+      // 🌐 YOUR CLOUDFLARE WORKER URL (holds the LTA key as a secret)
+      // e.g. "https://sg-bus-proxy.yourname.workers.dev"
+      const PROXY_URL = "https://lta-proxy.luikwanlok.workers.dev";
+
+      // 🚏 DEFAULT BUS STOP CODE
+      const DEFAULT_BUS_STOP = "72019"; // e.g. "67011" (Opp Little India Stn) or your morning bus stop
+
+      // 🚌 DESTINATION SHORTCUTS CONFIGURATION
+      // Map bus service numbers to each shortcut destination.
+      // Set 'buses: []' for "All Buses" to display all arriving services.
       const DESTINATION_SHORTCUTS = [
-        { id: "all", label: "All Buses", icon: "bus", buses: [] },
+        {
+          id: "all",
+          label: "All Buses",
+          icon: "bus",
+          buses: [], // Empty array = show all services
+        },
         {
           id: "kajima",
           label: "To Kajima",
           icon: "building-2",
-          buses: ["15", "150"],
+          buses: ["45", "25", "854"], // Custom bus numbers for Kajima
         },
         {
           id: "eunos",
           label: "To Eunos",
           icon: "navigation",
-          buses: ["15", "21", "60", "150"],
+          buses: [
+            "15",
+            "21",
+            "22",
+            "25",
+            "51",
+            "55",
+            "60",
+            "61",
+            "63",
+            "63M",
+            "854",
+            "93",
+            "94",
+          ], // Custom bus numbers for Eunos
+        },
+        {
+          id: "payalebar",
+          label: "To Paya Lebar",
+          icon: "navigation",
+          buses: ["21", "51"], // Custom bus numbers for Eunos
         },
         {
           id: "kembangan-bedok",
           label: "To Kembangan/Bedok",
           icon: "map-pin",
-          buses: ["2", "7", "24", "28", "30"],
+          buses: ["25", "854"], // Custom bus numbers for Bedok/Kembangan
+        },
+        {
+          id: "marine",
+          label: "To East Coast",
+          icon: "shopping-bag",
+          buses: ["15", "55"], // Custom bus numbers for Orchard
         },
         {
           id: "orchard",
           label: "To Orchard",
           icon: "shopping-bag",
-          buses: [
-            "7",
-            "14",
-            "16",
-            "65",
-            "106",
-            "111",
-            "123",
-            "174",
-            "175",
-            "502",
-          ],
+          buses: ["5"], // Custom bus numbers for Orchard
         },
       ];
 
-      /* Global State */
-      let currentShortcut = DESTINATION_SHORTCUTS[0];
+      /* ========================================================================
+       2. MOCK DEMO DATA (Fallback when API key is missing or offline)
+       ======================================================================== */
+      const MOCK_BUS_DATA = {
+        BusStopCode: DEFAULT_BUS_STOP,
+        Services: [
+          {
+            ServiceNo: "2",
+            Operator: "SBST",
+            NextBus: {
+              EstimatedArrival: new Date(Date.now() + 1 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "DD",
+            },
+            NextBus2: {
+              EstimatedArrival: new Date(Date.now() + 8 * 60000).toISOString(),
+              Load: "SDA",
+              Feature: "WAB",
+              Type: "DD",
+            },
+            NextBus3: {
+              EstimatedArrival: new Date(Date.now() + 16 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "SD",
+            },
+          },
+          {
+            ServiceNo: "7",
+            Operator: "SBST",
+            NextBus: {
+              EstimatedArrival: new Date(Date.now() + 3 * 60000).toISOString(),
+              Load: "SDA",
+              Feature: "WAB",
+              Type: "SD",
+            },
+            NextBus2: {
+              EstimatedArrival: new Date(Date.now() + 11 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "DD",
+            },
+            NextBus3: {
+              EstimatedArrival: new Date(Date.now() + 21 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "SD",
+            },
+          },
+          {
+            ServiceNo: "67",
+            Operator: "SMRT",
+            NextBus: {
+              EstimatedArrival: new Date(Date.now() + 2 * 60000).toISOString(),
+              Load: "SDA",
+              Feature: "WAB",
+              Type: "DD",
+            },
+            NextBus2: {
+              EstimatedArrival: new Date(Date.now() + 9 * 60000).toISOString(),
+              Load: "LSD",
+              Feature: "WAB",
+              Type: "SD",
+            },
+            NextBus3: {
+              EstimatedArrival: new Date(Date.now() + 18 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "DD",
+            },
+          },
+          {
+            ServiceNo: "170",
+            Operator: "SBST",
+            NextBus: {
+              EstimatedArrival: new Date(Date.now() + 0 * 60000).toISOString(),
+              Load: "LSD",
+              Feature: "WAB",
+              Type: "SD",
+            },
+            NextBus2: {
+              EstimatedArrival: new Date(Date.now() + 14 * 60000).toISOString(),
+              Load: "SDA",
+              Feature: "WAB",
+              Type: "SD",
+            },
+            NextBus3: {
+              EstimatedArrival: new Date(Date.now() + 25 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "SD",
+            },
+          },
+          {
+            ServiceNo: "851",
+            Operator: "SMRT",
+            NextBus: {
+              EstimatedArrival: new Date(Date.now() + 5 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "DD",
+            },
+            NextBus2: {
+              EstimatedArrival: new Date(Date.now() + 12 * 60000).toISOString(),
+              Load: "SDA",
+              Feature: "WAB",
+              Type: "BD",
+            },
+            NextBus3: {
+              EstimatedArrival: new Date(Date.now() + 22 * 60000).toISOString(),
+              Load: "SEA",
+              Feature: "WAB",
+              Type: "DD",
+            },
+          },
+        ],
+      };
+
+      /* ========================================================================
+       3. APP STATE & DOM REFERENCES
+       ======================================================================== */
+      let currentShortcut = DESTINATION_SHORTCUTS[0]; // Default to "All Buses"
       let autoRefreshSeconds = 30;
       let countdownTimer = null;
       let isFetching = false;
       let lastFetchedData = null;
 
-      /* DOM Elements */
+      // DOM Elements
       const clockTimeEl = document.getElementById("clock-time");
       const clockDateEl = document.getElementById("clock-date");
       const shortcutsContainer = document.getElementById("shortcuts-container");
@@ -376,79 +531,126 @@
       const statusText = document.getElementById("status-text");
       const activeFilterLabel = document.getElementById("active-filter-label");
 
-      /* Initialize App */
+      /* ========================================================================
+       4. INITIALIZATION & LISTENERS
+       ======================================================================== */
       window.addEventListener("DOMContentLoaded", () => {
-        apiKeyInput.value =
+        // Load values from hardcoded constants (or local storage fallback)
+        const activeKey =
           localStorage.getItem("sg_bus_api") || HARDCODED_API_KEY;
-        busStopInput.value =
+        const activeStop =
           localStorage.getItem("sg_bus_stop") || DEFAULT_BUS_STOP;
 
+        apiKeyInput.value = activeKey;
+        busStopInput.value = activeStop;
+
+        // Render Shortcuts Bar
         renderShortcutsBar();
+
+        // Start Clock immediately
         updateClock();
         setInterval(updateClock, 1000);
 
+        // Event Listeners
         fetchBtn.addEventListener("click", () => handleFetchArrivals());
-        toggleConfigBtn.addEventListener("click", () =>
-          configPanel.classList.toggle("hidden"),
-        );
+
+        toggleConfigBtn.addEventListener("click", () => {
+          configPanel.classList.toggle("hidden");
+        });
+
         saveSettingsBtn.addEventListener("click", () => {
           localStorage.setItem("sg_bus_api", apiKeyInput.value.trim());
           localStorage.setItem("sg_bus_stop", busStopInput.value.trim());
           configPanel.classList.add("hidden");
           handleFetchArrivals();
         });
+
         toggleKeyVisibilityBtn.addEventListener("click", () => {
           apiKeyInput.type =
             apiKeyInput.type === "password" ? "text" : "password";
         });
 
+        // Initial Data Fetch
         handleFetchArrivals();
+
+        // Start 30s Countdown Timer
         startAutoRefreshTimer();
       });
 
-      /* Live Clock Updates (SGT - Asia/Singapore) */
+      /* ========================================================================
+       5. CLOCK FUNCTIONS
+       ======================================================================== */
       function updateClock() {
         const now = new Date();
-        clockTimeEl.textContent = new Intl.DateTimeFormat("en-GB", {
+        const optionsTime = {
           timeZone: "Asia/Singapore",
           hour12: false,
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
-        }).format(now);
-        clockDateEl.textContent = `${new Intl.DateTimeFormat("en-SG", { timeZone: "Asia/Singapore", weekday: "short", year: "numeric", month: "short", day: "numeric" }).format(now)} (SGT)`;
+        };
+        const optionsDate = {
+          timeZone: "Asia/Singapore",
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        };
+
+        clockTimeEl.textContent = new Intl.DateTimeFormat(
+          "en-GB",
+          optionsTime,
+        ).format(now);
+        clockDateEl.textContent = `${new Intl.DateTimeFormat("en-SG", optionsDate).format(now)} (SGT)`;
       }
 
-      /* Destination Shortcuts Navigation Bar */
+      /* ========================================================================
+       6. DESTINATION SHORTCUTS BAR
+       ======================================================================== */
       function renderShortcutsBar() {
         shortcutsContainer.innerHTML = "";
+
         DESTINATION_SHORTCUTS.forEach((shortcut) => {
           const isActive = shortcut.id === currentShortcut.id;
+
           const btn = document.createElement("button");
-          btn.type = "button";
           btn.className = `flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap active:scale-95 ${
             isActive
               ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
               : "bg-slate-950/80 text-slate-300 hover:text-amber-400 hover:bg-slate-900 border border-slate-800"
           }`;
-          btn.innerHTML = `<i data-lucide="${shortcut.icon}" class="w-4 h-4"></i><span>${shortcut.label}</span>`;
+
+          btn.innerHTML = `
+          <i data-lucide="${shortcut.icon}" class="w-4 h-4"></i>
+          <span>${shortcut.label}</span>
+        `;
+
           btn.addEventListener("click", () => {
             currentShortcut = shortcut;
-            renderShortcutsBar();
+            renderShortcutsBar(); // Re-render active highlight
             activeFilterLabel.textContent = `Filter: ${shortcut.label}`;
-            if (lastFetchedData) renderArrivals(lastFetchedData);
-            else handleFetchArrivals();
+
+            if (lastFetchedData) {
+              renderArrivals(lastFetchedData);
+            } else {
+              handleFetchArrivals();
+            }
           });
+
           shortcutsContainer.appendChild(btn);
         });
+
         lucide.createIcons();
       }
 
-      /* Auto Refresh Loop */
+      /* ========================================================================
+       7. TIMERS & AUTO REFRESH
+       ======================================================================== */
       function startAutoRefreshTimer() {
         if (countdownTimer) clearInterval(countdownTimer);
         autoRefreshSeconds = 30;
         autoRefreshTimerEl.textContent = `${autoRefreshSeconds}s`;
+
         countdownTimer = setInterval(() => {
           autoRefreshSeconds--;
           if (autoRefreshSeconds <= 0) {
@@ -459,9 +661,12 @@
         }, 1000);
       }
 
-      /* Fetch Bus Arrival Data */
+      /* ========================================================================
+       8. DATA FETCHING (LTA API & DEMO FALLBACK)
+       ======================================================================== */
       async function handleFetchArrivals(isAuto = false) {
         if (isFetching) return;
+
         const apiKey = apiKeyInput.value.trim();
         const busStopCode = busStopInput.value.trim() || DEFAULT_BUS_STOP;
 
@@ -471,179 +676,40 @@
 
         try {
           let data = null;
-          if (!apiKey) {
+
+          if (!apiKey && !PROXY_URL) {
+            // DEMO MODE FALLBACK
             demoBadge.classList.remove("hidden");
             statusDot.className =
               "inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse";
             statusText.textContent = "Demo Mode";
-            await new Promise((r) => setTimeout(r, 300));
 
-            // Mock realistic demo data for testing without LTA AccountKey
-            data = {
-              BusStopCode: busStopCode,
-              Services: [
-                {
-                  ServiceNo: "2",
-                  Operator: "SBST",
-                  NextBus: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 120000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "DD",
-                    Feature: "WAB",
-                  },
-                  NextBus2: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 540000,
-                    ).toISOString(),
-                    Load: "SDA",
-                    Type: "SD",
-                  },
-                  NextBus3: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 1020000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "DD",
-                  },
-                },
-                {
-                  ServiceNo: "7",
-                  Operator: "SBST",
-                  NextBus: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 30000,
-                    ).toISOString(),
-                    Load: "SDA",
-                    Type: "DD",
-                    Feature: "WAB",
-                  },
-                  NextBus2: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 420000,
-                    ).toISOString(),
-                    Load: "LSD",
-                    Type: "DD",
-                  },
-                  NextBus3: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 840000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "SD",
-                  },
-                },
-                {
-                  ServiceNo: "15",
-                  Operator: "GAS",
-                  NextBus: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 90000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "SD",
-                    Feature: "WAB",
-                  },
-                  NextBus2: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 450000,
-                    ).toISOString(),
-                    Load: "SDA",
-                    Type: "DD",
-                  },
-                  NextBus3: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 900000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "SD",
-                  },
-                },
-                {
-                  ServiceNo: "21",
-                  Operator: "SBST",
-                  NextBus: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 200000,
-                    ).toISOString(),
-                    Load: "SDA",
-                    Type: "DD",
-                    Feature: "WAB",
-                  },
-                  NextBus2: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 600000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "SD",
-                  },
-                  NextBus3: {},
-                },
-                {
-                  ServiceNo: "60",
-                  Operator: "SBST",
-                  NextBus: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 360000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "SD",
-                    Feature: "WAB",
-                  },
-                  NextBus2: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 780000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "DD",
-                  },
-                  NextBus3: {},
-                },
-                {
-                  ServiceNo: "150",
-                  Operator: "SBST",
-                  NextBus: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 60000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "SD",
-                    Feature: "WAB",
-                  },
-                  NextBus2: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 660000,
-                    ).toISOString(),
-                    Load: "SDA",
-                    Type: "SD",
-                  },
-                  NextBus3: {
-                    EstimatedArrival: new Date(
-                      Date.now() + 1200000,
-                    ).toISOString(),
-                    Load: "SEA",
-                    Type: "SD",
-                  },
-                },
-              ],
-            };
-            displayStopName.textContent = "Bus Stop (Demo Mode)";
+            await new Promise((r) => setTimeout(r, 300));
+            data = JSON.parse(JSON.stringify(MOCK_BUS_DATA));
+            data.BusStopCode = busStopCode;
+            displayStopName.textContent = "Opp Little India Stn (Demo)";
           } else {
+            // LIVE LTA DATAMALL API CALL
             demoBadge.classList.add("hidden");
             statusDot.className =
               "inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
             statusText.textContent = "Live DataMall API";
 
-            const ltaUrl = `https://datamall2.mytransport.sg/ltaodataservice/BusArrivalv2?BusStopCode=${busStopCode}`;
-            const response = await fetch(
-              `https://api.allorigins.win/raw?url=${encodeURIComponent(ltaUrl)}`,
-              {
-                headers: { AccountKey: apiKey, accept: "application/json" },
-              },
-            );
+            let response;
+            if (PROXY_URL) {
+              // Via your own proxy: the AccountKey is added server-side
+              response = await fetch(
+                `${PROXY_URL}/?BusStopCode=${encodeURIComponent(busStopCode)}`,
+              );
+            } else {
+              // Direct call (only works where CORS is allowed, e.g. a local proxy)
+              response = await fetch(
+                `https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival?BusStopCode=${busStopCode}`,
+                { headers: { AccountKey: apiKey, accept: "application/json" } },
+              );
+            }
 
-            if (!response.ok) throw new Error("API request failed");
+            if (!response.ok) throw new Error(`API request failed: ${response.status}`);
             data = await response.json();
             displayStopName.textContent = `Bus Stop ${busStopCode}`;
           }
@@ -651,12 +717,14 @@
           lastFetchedData = data;
           renderArrivals(data);
 
+          // Update timestamp
           const now = new Date();
           lastUpdatedTime.textContent = now.toLocaleTimeString("en-GB", {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
           });
+
           if (!isAuto) startAutoRefreshTimer();
         } catch (err) {
           console.error("Fetch Error:", err);
@@ -672,18 +740,23 @@
         }
       }
 
-      /* Render Services Grid */
+      /* ========================================================================
+       9. RENDERING BUS ARRIVALS & SHORTCUT FILTERS
+       ======================================================================== */
       function renderArrivals(data) {
         arrivalsContainer.innerHTML = "";
+
         if (!data || !data.Services || data.Services.length === 0) {
           showEmptyState(
             "No Bus Services",
-            `No active services found for stop ${data.BusStopCode}.`,
+            `No active bus services found for stop ${data.BusStopCode}.`,
           );
           return;
         }
 
         let services = data.Services;
+
+        // Apply active destination shortcut filter
         if (currentShortcut.buses && currentShortcut.buses.length > 0) {
           services = services.filter((s) =>
             currentShortcut.buses.includes(s.ServiceNo),
@@ -692,8 +765,8 @@
 
         if (services.length === 0) {
           showEmptyState(
-            `No Buses (${currentShortcut.label})`,
-            `None of the buses for '${currentShortcut.label}' are currently arriving.`,
+            `No Buses ${currentShortcut.label}`,
+            `None of the buses for '${currentShortcut.label}' (${currentShortcut.buses.join(", ")}) are currently arriving at this stop.`,
           );
           return;
         }
@@ -701,23 +774,20 @@
         emptyState.classList.add("hidden");
         arrivalsContainer.classList.remove("hidden");
 
-        services.sort((a, b) => {
-          const numA = parseInt(a.ServiceNo, 10);
-          const numB = parseInt(b.ServiceNo, 10);
-          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-          return a.ServiceNo.localeCompare(b.ServiceNo);
-        });
+        // Sort services numerically
+        services.sort((a, b) => parseInt(a.ServiceNo) - parseInt(b.ServiceNo));
 
+        // Render cards
         services.forEach((service) => {
           arrivalsContainer.insertAdjacentHTML(
             "beforeend",
             createBusCardHtml(service),
           );
         });
+
         lucide.createIcons();
       }
 
-      /* Build HTML for Individual Bus Card */
       function createBusCardHtml(service) {
         const b1 = formatNextBus(service.NextBus);
         const b2 = formatNextBus(service.NextBus2);
@@ -725,39 +795,74 @@
 
         return `
         <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl hover:border-slate-700 transition backdrop-blur-sm">
+          
+          <!-- Top Row: Service Number & Operator -->
           <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
             <div class="flex items-center gap-3">
-              <span class="font-mono-num text-3xl font-extrabold text-amber-400 glow-amber tracking-tight">${service.ServiceNo}</span>
-              <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase px-2 py-0.5 rounded bg-slate-950 border border-slate-800">${service.Operator || "BUS"}</span>
+              <span class="font-mono-num text-3xl font-extrabold text-amber-400 glow-amber tracking-tight">
+                ${service.ServiceNo}
+              </span>
+              <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase px-2 py-0.5 rounded bg-slate-950 border border-slate-800">
+                ${service.Operator || "BUS"}
+              </span>
             </div>
-            <div class="text-[11px] text-slate-400 font-medium">Next Arrivals</div>
+            <div class="text-[11px] text-slate-400 font-medium">
+              Next Arrivals
+            </div>
           </div>
+
+          <!-- Middle Row: Next Bus (Primary ETA) -->
           <div class="py-3 flex items-center justify-between">
             <div>
               <div class="text-[11px] font-medium text-slate-400">Next Bus</div>
-              <div class="font-mono-num text-3xl sm:text-4xl font-extrabold ${b1.textColor} mt-0.5">${b1.timingText}</div>
+              <div class="font-mono-num text-3xl sm:text-4xl font-extrabold ${b1.textColor} mt-0.5">
+                ${b1.timingText}
+              </div>
             </div>
+
+            <!-- Capacity Load Badge & Vehicle Type -->
             <div class="flex flex-col items-end gap-1.5">
               ${b1.loadBadge}
               <div class="text-[11px] text-slate-400 font-mono-num flex items-center gap-1.5 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
-                <span>${b1.typeText}</span>${b1.featureIcon}
+                <span>${b1.typeText}</span>
+                ${b1.featureIcon}
               </div>
             </div>
           </div>
+
+          <!-- Bottom Row: Sub-sequent Buses (2nd & 3rd) -->
           <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800/80">
+            
+            <!-- 2nd Bus -->
             <div class="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/60 flex items-center justify-between">
-              <div><div class="text-[10px] text-slate-500">2nd Bus</div><div class="font-mono-num text-sm font-bold text-slate-200 mt-0.5">${b2.timingText}</div></div>
-              <div class="flex flex-col items-end gap-1">${b2.loadPill}<span class="text-[9px] text-slate-500 font-mono-num">${b2.typeText}</span></div>
+              <div>
+                <div class="text-[10px] text-slate-500">2nd Bus</div>
+                <div class="font-mono-num text-sm font-bold text-slate-200 mt-0.5">${b2.timingText}</div>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                ${b2.loadPill}
+                <span class="text-[9px] text-slate-500 font-mono-num">${b2.typeText}</span>
+              </div>
             </div>
+
+            <!-- 3rd Bus -->
             <div class="bg-slate-950/70 rounded-xl p-2.5 border border-slate-800/60 flex items-center justify-between">
-              <div><div class="text-[10px] text-slate-500">3rd Bus</div><div class="font-mono-num text-sm font-bold text-slate-300 mt-0.5">${b3.timingText}</div></div>
-              <div class="flex flex-col items-end gap-1">${b3.loadPill}<span class="text-[9px] text-slate-500 font-mono-num">${b3.typeText}</span></div>
+              <div>
+                <div class="text-[10px] text-slate-500">3rd Bus</div>
+                <div class="font-mono-num text-sm font-bold text-slate-300 mt-0.5">${b3.timingText}</div>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                ${b3.loadPill}
+                <span class="text-[9px] text-slate-500 font-mono-num">${b3.typeText}</span>
+              </div>
             </div>
+
           </div>
-        </div>`;
+
+        </div>
+      `;
       }
 
-      /* Format ETA, Capacity Load, and Vehicle Type Attributes */
       function formatNextBus(busObj) {
         if (!busObj || !busObj.EstimatedArrival) {
           return {
@@ -770,38 +875,50 @@
             featureIcon: "",
           };
         }
-        const diffMins = Math.floor(
-          (new Date(busObj.EstimatedArrival) - new Date()) / 60000,
-        );
-        let timingText =
-          diffMins <= 0 ? "Arr" : diffMins === 1 ? "1 min" : `${diffMins} mins`;
-        let textColor =
-          diffMins <= 0
-            ? "text-emerald-400 glow-green animate-pulse"
-            : "text-amber-400";
 
-        let loadBadge = "",
-          loadPill = "";
+        const arrivalTime = new Date(busObj.EstimatedArrival);
+        const diffMins = Math.floor((arrivalTime - new Date()) / 60000);
+
+        let timingText = "";
+        let textColor = "text-amber-400";
+
+        if (diffMins <= 0) {
+          timingText = "Arr";
+          textColor = "text-emerald-400 glow-green animate-pulse";
+        } else if (diffMins === 1) {
+          timingText = "1 min";
+          textColor = "text-emerald-400 glow-green";
+        } else {
+          timingText = `${diffMins} mins`;
+        }
+
+        // Load Capacity formatting
+        let loadBadge = "";
+        let loadPill = "";
         if (busObj.Load === "SEA") {
           loadBadge =
             '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/50">Seats Avail</span>';
           loadPill =
-            '<span class="w-2 h-2 rounded-full bg-emerald-500"></span>';
+            '<span class="w-2 h-2 rounded-full bg-emerald-500" title="Seats Available"></span>';
         } else if (busObj.Load === "SDA") {
           loadBadge =
             '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-800/50">Standing</span>';
-          loadPill = '<span class="w-2 h-2 rounded-full bg-amber-500"></span>';
+          loadPill =
+            '<span class="w-2 h-2 rounded-full bg-amber-500" title="Standing Available"></span>';
         } else if (busObj.Load === "LSD") {
           loadBadge =
             '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-800/50">Limited Stand</span>';
-          loadPill = '<span class="w-2 h-2 rounded-full bg-rose-500"></span>';
+          loadPill =
+            '<span class="w-2 h-2 rounded-full bg-rose-500" title="Limited Standing"></span>';
         }
 
+        // Vehicle Type
         let typeText = busObj.Type || "SD";
         let featureIcon =
           busObj.Feature === "WAB"
-            ? '<i data-lucide="accessibility" class="w-3 h-3 text-amber-400"></i>'
+            ? '<i data-lucide="accessibility" class="w-3 h-3 text-amber-400" title="Wheelchair Accessible"></i>'
             : "";
+
         return {
           timingText,
           textColor,
