@@ -489,6 +489,7 @@
             month: "short",
             year: "numeric",
           }).format(n) + " (SGT)";
+        if (document.hidden) return;
         if (--secs <= 0) load(true);
         $("cd").textContent = Math.max(secs, 0);
         if (data && secs % 10 === 0) render(); // keep minutes ticking down
@@ -610,11 +611,17 @@
         ? ""
         : stopCode;
       $("fl").textContent = filter.label;
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) load();
+      });
       drawStopButtons();
       drawFilters();
       tick();
       setInterval(tick, 1000);
       load();
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) load();
+      });
     </script>
   </body>
 </html>
