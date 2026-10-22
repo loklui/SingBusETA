@@ -139,6 +139,9 @@
         margin-bottom: 1rem;
       }
       .tab {
+        position: relative;
+        top: 0.12rem;
+        z-index: 1;
         display: inline-block;
         background: #e4e4e4;
         color: #222;
@@ -153,6 +156,7 @@
         font-weight: 400;
       }
       .inc {
+        border: 0.12rem solid #6fd3cf;
         display: flex;
         gap: 0.8rem;
         padding: 0.8rem;
@@ -211,9 +215,10 @@
         padding: 0.8rem 0.2rem;
       }
       .c {
+        --bar: #666;
+        position: relative;
         background: var(--cell);
         border-radius: 0.7rem;
-        border-left: 0.28rem solid #666;
         padding: 0 0.9rem;
         font-size: 2.2rem;
         display: flex;
@@ -228,8 +233,24 @@
         color: #666;
         border-left-color: #555;
       }
+      .c::before {
+        content: "";
+        position: absolute;
+        left: -0.45rem;
+        top: 0;
+        bottom: 0;
+        width: 0.22rem;
+        border-radius: 0.2rem;
+        background: var(--bar);
+      }
       .SEA {
-        border-left-color: #5fc84a;
+        --bar: #3fe0c5;
+      }
+      .SDA {
+        --bar: #f2d84a;
+      }
+      .LSD {
+        --bar: #ff5a64;
       }
       .SDA {
         border-left-color: #f2c230;
@@ -406,8 +427,8 @@
         stopCode = localStorage.getItem("sg_bus_stop") || stopCode;
       } catch (e) {}
 
-      const BUS_ICON =
-        '<svg viewBox="0 0 24 24"><path d="M4 16c0 .9.4 1.7 1 2.2V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h8v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.8c.6-.5 1-1.3 1-2.2V6c0-3.5-3.6-4-8-4S4 2.5 4 6v10zm3.5 1a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM6 11V6h12v5H6z"/></svg>';
+      const DD_ICON =
+        '<svg viewBox="0 0 24 24" fill-rule="evenodd"><path d="M6 2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2v1.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5V20H8v1.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5V20a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM6.5 4h11v3.5h-11zM6.5 9h11v4.5h-11zM7 15.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM17 15.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
 
       function stopName(code) {
         const s = BUS_STOPS.find((b) => b.code === code);
@@ -497,17 +518,17 @@
 
       /* ========== DATA ========== */
       function mockData() {
-        const t = (m, l = "SEA", f = "WAB") => ({
+        const t = (m, l = "SEA", ty = "DD") => ({
           EstimatedArrival: new Date(
             Date.now() + m * 60000 + 20000,
           ).toISOString(),
           Load: l,
-          Feature: f,
+          Type: ty,
         });
         const svc = (n, a, b, c, l) => ({
           ServiceNo: n,
           NextBus: t(a, l),
-          NextBus2: t(b, "SDA", ""),
+          NextBus2: t(b, "SDA", "SD"),
           NextBus3: t(c, "SEA"),
         });
         return {
@@ -569,7 +590,7 @@
       function cell(b) {
         const m = mins(b);
         if (m === null) return '<div class="c na">–</div>';
-        return `<div class="c ${b.Load || ""}"><span>${label(m)}</span>${b.Feature === "WAB" ? BUS_ICON : ""}</div>`;
+        return `<div class="c ${b.Load || ""}"><span>${label(m)}</span>${b.Type === "DD" ? DD_ICON : ""}</div>`;
       }
       function render() {
         let list = (data && data.Services) || [];
