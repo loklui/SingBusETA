@@ -264,6 +264,64 @@
         fill: #bbb;
         flex: none;
       }
+      .c.via,
+      .c.eta {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 0.1rem;
+      }
+      .c.via {
+        font-size: 1.1rem;
+      }
+      .c.eta {
+        color: #f6c343;
+      }
+      .c.via small b {
+        color: var(--txt);
+      }
+      .c.via small,
+      .c.eta small {
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: var(--mut);
+      }
+      .c.via::before,
+      .c.eta::before {
+        display: none;
+      }
+      .c.eta small.ok {
+        color: #3fe0c5;
+      }
+      .c.eta small.late {
+        color: #ff5a64;
+      }
+      .best .c.eta {
+        outline: 0.15rem solid #f6c343;
+      }
+      .near {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: center;
+        margin-bottom: 0.8rem;
+        color: var(--mut);
+        font-weight: 400;
+      }
+      .near[hidden] {
+        display: none;
+      }
+      .near button {
+        text-align: left;
+        line-height: 1.25;
+        padding: 0.6rem 1rem;
+      }
+      .near button small {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--mut);
+      }
       .msg {
         padding: 2.5rem 0.6rem;
         text-align: center;
@@ -326,10 +384,24 @@
             aria-label="Bus stop code"
           />
           <button id="go" class="big">Go</button>
+          <button
+            id="near"
+            class="big"
+            aria-label="Nearest bus stops"
+            title="Nearest bus stops"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              style="width: 1.4rem; height: 1.4rem; display: block"
+            >
+              <path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
+            </svg>
+          </button>
         </div>
         <button id="refresh" class="big">Refresh <span id="cd"></span>s</button>
       </div>
-
+      <div class="near" id="nearBox" hidden></div>
       <div class="hdr">
         <div class="code" id="hCode">-----</div>
         <div class="name" id="hName">Loading…</div>
@@ -347,7 +419,7 @@
       </div>
       <div class="inc" id="inc"></div>
 
-      <div class="cols">
+      <div class="cols" id="cols">
         <div>SERVICE</div>
         <div>ARRIVING (min)</div>
         <div>NEXT (min)</div>
@@ -377,7 +449,33 @@
           code: "72019",
           name: "Opp Blk 322",
           destinations: [
-            { label: "KAJIMA", buses: ["45", "25", "854"] },
+            {
+              label: "KAJIMA",
+              buses: ["45", "25", "854"],
+              journey: {
+                to: "Tanah Merah MRT",
+                shuttle: "08:15",
+                legs: {
+                  45: { ride: 18, shuttleWalk: 0.2 },
+                  25: {
+                    ride: 8,
+                    via: "Kembangan MRT",
+                    walk: 3,
+                    wait: 2,
+                    mrt: 6,
+                    shuttleWalk: 5,
+                  },
+                  854: {
+                    ride: 8,
+                    via: "Kembangan MRT",
+                    walk: 3,
+                    wait: 2,
+                    mrt: 6,
+                    shuttleWalk: 5,
+                  },
+                },
+              },
+            },
             {
               label: "EUNOS",
               buses: [
@@ -468,9 +566,20 @@
       const DD_ICON =
         '<svg viewBox="0 0 24 24" fill-rule="evenodd"><path d="M6 2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2v1.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5V20H8v1.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5V20a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM6.5 4h11v3.5h-11zM6.5 9h11v4.5h-11zM7 15.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM17 15.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
 
+      const STOPS_KEY = "sg_bus_stops_v1";
+      function cachedStops() {
+        try {
+          const c = JSON.parse(localStorage.getItem(STOPS_KEY));
+          return c ? c.s : [];
+        } catch (e) {
+          return [];
+        }
+      }
       function stopName(code) {
         const s = BUS_STOPS.find((b) => b.code === code);
-        return s ? s.name : "Stop " + code;
+        if (s) return s.name;
+        const c = cachedStops().find((x) => x[0] === code);
+        return c ? c[1] : "Stop " + code;
       }
 
       /* ========== UI BUILD ========== */
@@ -630,6 +739,61 @@
         if (m === null) return '<div class="c na">–</div>';
         return `<div class="c ${b.Load || ""}"><span>${label(m)}</span>${b.Type === "DD" ? DD_ICON : ""}</div>`;
       }
+      function shuttleDeadline(j) {
+        if (!j.shuttle) return null;
+        const today = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Singapore",
+        }).format(new Date());
+        return new Date(`${today}T${j.shuttle}:00+08:00`);
+      }
+      const shuttleLive = (j) => {
+        const d = shuttleDeadline(j);
+        return !!d && Date.now() < d;
+      };
+
+      function renderJourney(list, j) {
+        const hm = (d) =>
+          new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Singapore",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).format(d);
+        const deadline = shuttleDeadline(j);
+        const rows = [];
+        list.forEach((s) => {
+          const leg = j.legs[s.ServiceNo];
+          if (!leg) return;
+          const trip =
+            leg.ride +
+            (leg.via ? (leg.walk || 0) + (leg.wait || 0) + (leg.mrt || 0) : 0);
+          [s.NextBus, s.NextBus2, s.NextBus3].forEach((b) => {
+            const m = mins(b);
+            if (m === null) return;
+            const at = new Date(
+              new Date(b.EstimatedArrival).getTime() + trip * 60000,
+            ); // reach the MRT station
+            const ready = new Date(
+              at.getTime() + (leg.shuttleWalk || 0) * 60000,
+            ); // reach the shuttle
+            rows.push({ s: s.ServiceNo, b, m, leg, trip, at, ready });
+          });
+        });
+        rows.sort((x, y) => x.ready - y.ready); // earliest at the shuttle first
+        $("rows").innerHTML = rows.length
+          ? rows
+              .map((r, i) => {
+                const spare = Math.floor((deadline - r.ready) / 60000);
+                const best = i === 0 && spare >= 0;
+                return `<div class="row${best ? " best" : ""}">
+    <div class="svc">${r.s}</div>
+    <div class="c ${r.b.Load || ""}"><span>${label(r.m)}</span>${r.b.Type === "DD" ? DD_ICON : ""}</div>
+    <div class="c via">${r.leg.via ? "Bus + MRT" : "Direct Bus"}<small>${r.leg.via ? "via " + r.leg.via + " · " : ""}~${r.trip} min</small><small>ETA at ${j.to} <b>${hm(r.at)}</b></small></div>
+    <div class="c eta">${hm(r.ready)}<small class="${spare >= 0 ? "ok" : "late"}">${spare >= 0 ? spare + " min spare" : -spare + " min late"}</small></div></div>`;
+              })
+              .join("")
+          : '<div class="msg">No buses</div>';
+      }
       function render() {
         let list = (data && data.Services) || [];
         if (filter.buses.length)
@@ -654,7 +818,14 @@
               )
               .join("")
           : '<div class="msg" style="width:100%;padding:12px">No buses</div>';
-
+        const jv = filter.journey && shuttleLive(filter.journey);
+        $("cols").innerHTML = jv
+          ? "<div>SERVICE</div><div>BUS AT STOP (min)</div><div>ROUTE</div><div>ETA AT SHUTTLE</div>"
+          : "<div>SERVICE</div><div>ARRIVING (min)</div><div>NEXT (min)</div><div>NEXT 2 (min)</div>";
+        if (jv) {
+          renderJourney(list, filter.journey);
+          return;
+        }
         $("rows").innerHTML = list.length
           ? list
               .map(
@@ -664,6 +835,88 @@
               .join("")
           : `<div class="msg">No bus services found${filter.buses.length ? " for “" + filter.label + "”" : ""} at this stop.</div>`;
       }
+
+      /* ========== NEAREST BUS STOP ========== */
+      async function loadAllStops() {
+        const c = cachedStops();
+        if (c.length) return c;
+        const all = [];
+        for (let skip = 0; skip < 10000; skip += 500) {
+          // LTA returns 500 stops per page
+          const r = await fetch(`${PROXY_URL}/busstops?skip=${skip}`);
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const v = (await r.json()).value || [];
+          v.forEach((x) =>
+            all.push([
+              x.BusStopCode,
+              x.Description,
+              x.RoadName,
+              x.Latitude,
+              x.Longitude,
+            ]),
+          );
+          if (v.length < 500) break;
+        }
+        try {
+          localStorage.setItem(
+            STOPS_KEY,
+            JSON.stringify({ t: Date.now(), s: all }),
+          );
+        } catch (e) {}
+        return all;
+      }
+      function metres(la1, lo1, la2, lo2) {
+        const t = Math.PI / 180,
+          x = (la2 - la1) * t,
+          y = (lo2 - lo1) * t;
+        const h =
+          Math.sin(x / 2) ** 2 +
+          Math.cos(la1 * t) * Math.cos(la2 * t) * Math.sin(y / 2) ** 2;
+        return 12742000 * Math.asin(Math.sqrt(h));
+      }
+      $("near").onclick = () => {
+        const box = $("nearBox");
+        box.hidden = false;
+        if (!PROXY_URL) {
+          box.textContent = "Set PROXY_URL first.";
+          return;
+        }
+        if (!navigator.geolocation) {
+          box.textContent = "Location is not available on this device.";
+          return;
+        }
+        box.textContent = "Finding your location…";
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              const { latitude: la, longitude: lo } = pos.coords;
+              if (!cachedStops().length)
+                box.textContent =
+                  "Downloading bus stop list (first time only)…";
+              const near = (await loadAllStops())
+                .map((s) => ({ s, d: metres(la, lo, s[3], s[4]) }))
+                .sort((a, b) => a.d - b.d)
+                .slice(0, 5);
+              box.innerHTML = "";
+              near.forEach(({ s, d }) => {
+                const b = document.createElement("button");
+                b.innerHTML = `${s[1]}<small>${s[0]} · ${s[2]} · ${Math.round(d)} m</small>`;
+                b.onclick = () => {
+                  box.hidden = true;
+                  setStop(s[0]);
+                };
+                box.appendChild(b);
+              });
+            } catch (e) {
+              box.textContent = "Could not load stops: " + e.message;
+            }
+          },
+          (err) => {
+            box.textContent = "Location unavailable: " + err.message;
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        );
+      };
 
       /* ========== INIT ========== */
       $("stopIn").value = BUS_STOPS.some((b) => b.code === stopCode)
