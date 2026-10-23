@@ -454,6 +454,7 @@
               buses: ["45", "25", "854"],
               journey: {
                 to: "Tanah Merah MRT",
+                from: "07:00",
                 shuttle: "08:15",
                 legs: {
                   45: { ride: 18, shuttleWalk: 0.2 },
@@ -739,16 +740,20 @@
         if (m === null) return '<div class="c na">–</div>';
         return `<div class="c ${b.Load || ""}"><span>${label(m)}</span>${b.Type === "DD" ? DD_ICON : ""}</div>`;
       }
-      function shuttleDeadline(j) {
-        if (!j.shuttle) return null;
+      function sgTime(hhmm) {
         const today = new Intl.DateTimeFormat("en-CA", {
           timeZone: "Asia/Singapore",
         }).format(new Date());
-        return new Date(`${today}T${j.shuttle}:00+08:00`);
+        return new Date(`${today}T${hhmm}:00+08:00`);
+      }
+      function shuttleDeadline(j) {
+        return j.shuttle ? sgTime(j.shuttle) : null;
       }
       const shuttleLive = (j) => {
         const d = shuttleDeadline(j);
-        return !!d && Date.now() < d;
+        return (
+          !!d && Date.now() < d && (!j.from || Date.now() >= sgTime(j.from))
+        ); // from <= now < shuttle
       };
 
       function renderJourney(list, j) {
